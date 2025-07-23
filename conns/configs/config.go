@@ -8,7 +8,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	"revonoir.com/jform/controllers/dto"
+	"revonoir.com/jbilling/controllers/dto"
 )
 
 type Configuration struct {
@@ -39,7 +39,7 @@ func NewConfigManager(configName string) (*ConfigManager, error) {
 	}
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/APP/revonoir/jform/")
+	viper.AddConfigPath("/etc/APP/revonoir/jbilling/")
 	viper.AddConfigPath("./resources/config")
 
 	if err := viper.ReadInConfig(); err != nil {

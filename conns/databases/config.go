@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"revonoir.com/jform/conns/configs"
+	"revonoir.com/jbilling/conns/configs"
 )
 
 type DBEnv struct {
@@ -22,13 +22,12 @@ type DBEnv struct {
 func GenerateDbString(config configs.Configuration) string {
 	dbConfig := config.Database
 	return fmt.Sprintf(
-		"user=%s password=%s host=%s port=%d dbname=%s pool_max_conns=%d sslmode=disable",
+		"user=%s password=%s host=%s port=%d dbname=%s sslmode=disable",
 		dbConfig.User,
 		dbConfig.Password,
 		dbConfig.Host,
 		dbConfig.Port,
 		dbConfig.Dbname,
-		dbConfig.MaxConns,
 	)
 }
 

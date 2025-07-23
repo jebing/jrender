@@ -11,14 +11,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"revonoir.com/jform/conns/configs"
-	"revonoir.com/jform/conns/databases"
-	"revonoir.com/jform/webapp"
+	"revonoir.com/jbilling/conns/configs"
+	"revonoir.com/jbilling/conns/databases"
+	"revonoir.com/jbilling/webapp"
 )
 
 const (
-	logFilePath = "/var/log/APP/jform"
-	logFileName = "jform.log"
+	logFilePath = "/var/log/APP/jbilling"
+	logFileName = "jbilling.log"
 )
 
 func main() {
@@ -42,8 +42,13 @@ func main() {
 		slog.Error("failed to create database", "error", err)
 		panic(err)
 	}
-
 	defer databases.Close(db.Client)
+
+	// Migrate the database
+	if err := databases.Migrate(context.Background(), config); err != nil {
+		slog.Error("failed to migrate the database", "error", err)
+		panic(err)
+	}
 
 	r := initWebServer()
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {

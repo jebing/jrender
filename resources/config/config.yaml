@@ -1,8 +1,9 @@
 database:
   host: localhost
   port: 5432
-  user: jsasmita
+  user: jbilling
   password: P3rtamax_10%
-  dbname: jform_db
+  dbname: jbilling_db
   max_conns: 10
   sslmode: disable
+  

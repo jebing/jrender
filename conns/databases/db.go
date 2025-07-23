@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"revonoir.com/jform/conns/configs"
+	"revonoir.com/jbilling/conns/configs"
 )
 
 type Database struct {
