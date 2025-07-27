@@ -8,7 +8,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	"revonoir.com/jbilling/controllers/dto"
+	"revonoir.com/jbilling/controllers/dto/jerrors"
 )
 
 type Configuration struct {
@@ -43,7 +43,8 @@ func NewConfigManager(configName string) (*ConfigManager, error) {
 	viper.AddConfigPath("./resources/config")
 
 	if err := viper.ReadInConfig(); err != nil {
-		return nil, dto.NewError(http.StatusInternalServerError, dto.ErrorTitleConfig, "failed to read config: "+err.Error())
+		slog.Error("failed to read config", "error", err)
+		return nil, jerrors.NewErrorResp(http.StatusInternalServerError, "failed to read config")
 	}
 	viper.OnConfigChange(func(in fsnotify.Event) {
 		slog.Info("config file changed", "event", in)
@@ -77,7 +78,7 @@ func (c *ConfigManager) GetConfig() (Configuration, error) {
 
 	if err := viper.Unmarshal(&c.config); err != nil {
 		slog.Error("failed to unmarshal config", "error", err)
-		return c.config, dto.NewError(http.StatusInternalServerError, dto.ErrorTitleConfig, "failed to parse config: "+err.Error())
+		return c.config, jerrors.NewErrorResp(http.StatusInternalServerError, "failed to parse config: "+err.Error())
 	}
 	c.lastLoadTime = time.Now()
 
