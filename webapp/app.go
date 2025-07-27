@@ -26,7 +26,7 @@ func Run(r *chi.Mux) {
 
 func New(r *chi.Mux) *App {
 	s := &http.Server{
-		Addr:         ":9000",
+		Addr:         ":9200",
 		Handler:      r,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 60 * time.Second,
