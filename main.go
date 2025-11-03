@@ -11,14 +11,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"revonoir.com/jbilling/conns/configs"
-	"revonoir.com/jbilling/conns/databases"
-	"revonoir.com/jbilling/webapp"
+	"revonoir.com/jrender/conns/configs"
+	"revonoir.com/jrender/conns/databases"
+	"revonoir.com/jrender/controllers/impl/forms"
+	"revonoir.com/jrender/webapp"
 )
 
 const (
-	logFilePath = "/var/log/APP/jbilling"
-	logFileName = "jbilling.log"
+	logFilePath = "/var/log/APP/jrender"
+	logFileName = "jrender.log"
 )
 
 func main() {
@@ -57,6 +58,8 @@ func main() {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
 	})
+
+	forms.Route(r, config)
 
 	webapp.Run(r)
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/url"
 
-	"revonoir.com/jbilling/conns/configs"
+	"revonoir.com/jrender/conns/configs"
 )
 
 func main() {

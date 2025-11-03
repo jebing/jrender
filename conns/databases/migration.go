@@ -9,7 +9,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
-	"revonoir.com/jbilling/conns/configs"
+	"revonoir.com/jrender/conns/configs"
 )
 
 const SOURCE_DIR string = "file://resources/migrations"

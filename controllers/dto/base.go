@@ -1,6 +1,6 @@
 package dto
 
-import "revonoir.com/jbilling/controllers/dto/jerrors"
+import "revonoir.com/jrender/controllers/dto/jerrors"
 
 type Response[T interface{}] struct {
 	Data  T                  `json:"data,omitempty"`

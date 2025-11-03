@@ -1,9 +1,12 @@
 database:
   host: localhost
   port: 5432
-  user: jbilling
+  user: jform_embed
   password: P3rtamax_10%
-  dbname: jbilling_db
+  dbname: jform_embed_db
   max_conns: 10
   sslmode: disable
   
+remote:
+  jform: http://localhost:9000
+  api_key: 38edde6d-b46e-4f28-b4fa-2b21ad278a5c

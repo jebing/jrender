@@ -55,10 +55,21 @@ func InternalServerError(message string) ErrorResp {
 }
 
 // WriteErrorResponse writes an error response to the HTTP response writer
-func WriteErrorResponse(w http.ResponseWriter, err ErrorResp) {
+func WriteErrorResponse(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(err.Code)
-	
-	response := ErrorResponse{Error: err}
-	json.NewEncoder(w).Encode(response)
+
+	if errResp, ok := err.(ErrorResp); ok {
+		w.WriteHeader(errResp.Code)
+
+		response := ErrorResponse{Error: errResp}
+		json.NewEncoder(w).Encode(response)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		response := ErrorResponse{Error: ErrorResp{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		}}
+		json.NewEncoder(w).Encode(response)
+	}
 }

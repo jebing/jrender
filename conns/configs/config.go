@@ -8,8 +8,18 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
-	"revonoir.com/jbilling/controllers/dto/jerrors"
+	"revonoir.com/jrender/controllers/dto/jerrors"
 )
+
+type CaptchaProvider struct {
+	Turnstile struct {
+		SecretKey string `mapstructure:"secretKey"`
+	} `mapstructure:"turnstile"`
+	ReCaptcha struct {
+		SiteKey   string `mapstructure:"siteKey"`
+		SecretKey string `mapstructure:"secretKey"`
+	} `mapstructure:"recaptcha"`
+}
 
 type Configuration struct {
 	Database struct {
@@ -21,6 +31,13 @@ type Configuration struct {
 		MaxConns int    `mapstructure:"max_conns"`
 		Sslmode  string `mapstructure:"sslmode"`
 	} `mapstructure:"database"`
+	Remote struct {
+		JForm  string `mapstructure:"jform"`
+		ApiKey string `mapstructure:"api_key"`
+	} `mapstructure:"remote"`
+	Captcha struct {
+		Provider CaptchaProvider `mapstructure:"provider"`
+	} `mapstructure:"captcha"`
 }
 
 type ConfigManager struct {
@@ -39,7 +56,7 @@ func NewConfigManager(configName string) (*ConfigManager, error) {
 	}
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/APP/revonoir/jbilling/")
+	viper.AddConfigPath("/etc/APP/revonoir/jrender/")
 	viper.AddConfigPath("./resources/config")
 
 	if err := viper.ReadInConfig(); err != nil {

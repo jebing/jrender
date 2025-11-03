@@ -2,18 +2,43 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Commands
+## Project Overview
 
-### Running the Application
-```bash
-go run main.go
-```
+This is `jrender`, a Go microservice for the Froconnect SaaS platform that serves embeddable contact forms. It operates as a public endpoint without API key authentication, relying on domain verification, rate limiting, and other security measures.
+
+## Architecture
+
+### Core Components
+
+- **Configuration Management**: Uses Viper with YAML configs, supports live reloading with 5-minute cache TTL
+- **Database Layer**: PostgreSQL with pgx/v5 driver and connection pooling
+- **Web Framework**: Chi v5 router with CORS middleware
+- **Migrations**: golang-migrate with sequential SQL files
+- **Error Handling**: Custom `jerrors` package with structured JSON error responses
+
+### Key Packages
+
+- `conns/configs/`: Configuration management with caching and hot-reload
+- `conns/databases/`: Database connection, pooling, and migration utilities
+- `controllers/dto/jerrors/`: Standardized error response structures
+- `webapp/`: HTTP server with graceful shutdown handling
+- `scripts/`: Database URL generation for migrations
+
+### Configuration
+
+Config files located in:
+- `/etc/APP/revonoir/jrender/config.yaml` (production)
+- `./resources/config/config.yaml` (development)
+
+Structure includes database settings and remote service URLs (jform service).
+
+## Development Commands
 
 ### Database Migrations
-```bash
-# Install migration tool (first time only)
-make install-migrate-cli
 
+All migration commands are handled through the Makefile:
+
+```bash
 # Apply all pending migrations
 make migrate-up
 
@@ -21,106 +46,91 @@ make migrate-up
 make migrate-down
 
 # Create new migration files
-make migrate-create name=add_subscriptions_table
+make migrate-create name=migration_name
+
+# Install golang-migrate CLI
+make install-migrate-cli
 ```
 
-Note: The Makefile references `scripts/get-db-url.go` which needs to be created. This script should read the database configuration from `resources/config/config.yaml` and output a PostgreSQL connection string.
+### Running the Application
 
-### Testing
 ```bash
-# Run all tests (when implemented)
+# Start the server (listens on :9200)
+go run main.go
+
+# Run tests
 go test ./...
 
 # Run tests with coverage
 go test -cover ./...
-
-# Run specific package tests
-go test ./controllers/...
 ```
 
-## Architecture Overview
+### Database Setup
 
-This is the **Billing Service (jbilling)** for the Froconnect SaaS platform - an internal microservice responsible for all payment processing, subscription management, and billing operations.
+```bash
+# Create database
+createdb jrender_db
 
-### Service Position in Architecture
-```
-Contact Form Service → Billing Service → Stripe
-                         ↓
-                    PostgreSQL
-```
+# Copy config template
+cp resources/config/config.yaml.example resources/config/config.yaml
+# Edit with your database credentials
 
-The Billing Service is **never accessed directly by the frontend**. All requests come through the Contact Form Service.
-
-### Key Architectural Decisions
-
-1. **Configuration Management**: Uses Viper with hot-reload capability. Configuration files are loaded from multiple paths with 5-minute caching for performance. The `ConfigManager` is a thread-safe singleton.
-
-2. **Database Pattern**: 
-   - Connection pooling with pgx/v5
-   - SQL migrations using golang-migrate
-   - Migrations run automatically on startup
-   - Each service has its own database
-
-3. **Web Framework**: Chi v5 router with structured middleware chain (Logger → Recoverer → CORS)
-
-4. **Logging**: Dual output to stdout and `/var/log/APP/jbilling/jbilling.log` using slog
-
-### Code Organization
-
-- `conns/` - External connections and infrastructure
-  - `configs/` - Configuration management with hot-reload
-  - `databases/` - Database connection and migration logic
-- `controllers/` - HTTP handlers (to be implemented)
-  - `dto/` - Standardized error responses
-- `webapp/` - Server lifecycle management with graceful shutdown
-
-### Database Schema
-
-**Customers Table**: Links Stripe customers to organizations
-- `organization_id` is the foreign key to the Contact Form Service
-- `payment_method_id` references Stripe payment methods
-- `default_payment_method` stores JSON data from Stripe
-
-**Plans Table**: Defines subscription tiers
-- `features` and `limits` are JSONB for flexibility
-- `slug` values should match: `free`, `basic`, `premium`, `elite`, `enterprise`
-
-### Billing Logic Implementation Notes
-
-1. **Upgrades**: Immediate with proration - charge the difference right away
-2. **Downgrades**: Delayed until period end - prevent abuse
-3. **Overages**: Track usage, bill at period end at $0.01/email
-4. **Grace Period**: 7 days for failed payments before suspension
-
-### Missing Components to Implement
-
-1. **API Controllers**: No endpoints implemented yet
-2. **Stripe Integration**: Stripe SDK not added to go.mod
-3. **Scripts**: `scripts/get-db-url.go` needs to be created
-4. **Additional Tables**: Need subscriptions, usage_tracking, invoices tables
-5. **Authentication**: JWT validation middleware
-6. **Tests**: No test files exist yet
-
-### Configuration
-
-The service expects configuration at `resources/config/config.yaml`. In production, it also checks `/etc/APP/revonoir/jbilling/`.
-
-Current configuration structure:
-```yaml
-database:
-  host: localhost
-  port: 5432
-  user: jbilling
-  password: <password>
-  dbname: jbilling_db
-  max_conns: 10
-  sslmode: disable
+# Run migrations
+make migrate-up
 ```
 
-### Development Workflow
+## Important Implementation Details
 
-1. Make database schema changes via migrations
-2. Run `make migrate-up` to apply changes
-3. Implement corresponding Go structs and logic
-4. The server auto-reloads configuration changes without restart
-5. Logs are structured JSON for easy parsing
+### Configuration Pattern
+- `ConfigManager` implements thread-safe config loading with TTL caching
+- Supports live config reloading via fsnotify
+- Always use `configManager.GetConfig()` rather than direct Viper calls
+
+### Database Pattern
+- Use `NewDatabase(ctx, config)` for connection initialization
+- Database URL generation handled by `scripts/get-db-url.go`
+- Always use context-aware database operations
+
+### Error Handling Pattern
+```go
+// Use jerrors for consistent API responses
+return jerrors.BadRequest("invalid input")
+jerrors.WriteErrorResponse(w, err)
+```
+
+### Server Architecture
+- Server runs on port 9200 with graceful shutdown
+- CORS configured for cross-origin embedding
+- Middleware: Logger, Recoverer, CORS
+
+### Security Architecture
+The service implements public form embedding security through:
+- Domain verification via `embed_registrations` table
+- Rate limiting at HAProxy level
+- Captcha integration (configurable)
+- Secure cookie attributes
+- HTTPS-only policy enforcement
+- Frame protection headers (X-Frame-Options, CSP)
+
+## Database Schema
+
+Key table: `embed_registrations`
+- `form_id`: References forms from main jform service
+- `allowed_domains`: Array of whitelisted domains for embedding
+- GIN index on `allowed_domains` for efficient domain queries
+
+## Testing
+
+No test files exist yet. When adding tests:
+- Follow Go testing conventions with `_test.go` files
+- Use table-driven tests for multiple scenarios
+- Test database operations with testcontainers or similar
+
+## Migration Workflow
+
+1. Create migration: `make migrate-create name=descriptive_name`
+2. Edit `.up.sql` and `.down.sql` files in `resources/migrations/`
+3. Apply: `make migrate-up`
+4. Test rollback: `make migrate-down` (in development only)
+
+Migrations are automatically templated with metadata and examples.

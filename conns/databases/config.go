@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"revonoir.com/jbilling/conns/configs"
+	"revonoir.com/jrender/conns/configs"
 )
 
 type DBEnv struct {
