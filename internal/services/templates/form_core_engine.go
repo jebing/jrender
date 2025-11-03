@@ -340,7 +340,179 @@ const FormCoreTemplate = `
             font-size: 0.875rem;
             color: #9ca3af;
         }
-        
+
+        /* Form Submission Animation Styles */
+
+        /* Button loading state */
+        .jform-btn-loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            position: relative;
+            padding-right: 3rem;
+        }
+
+        /* Button disabled state */
+        .jform-btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            background-color: #9ca3af !important;
+        }
+
+        .jform-btn-disabled:hover {
+            background-color: #9ca3af !important;
+        }
+
+        /* Spinner animation */
+        .jform-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: jform-spin 0.6s linear infinite;
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            margin-top: -0.5rem;
+        }
+
+        @keyframes jform-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Form submitting state - dims and disables the form */
+        .jform-submitting {
+            opacity: 0.6;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .jform-submitting input,
+        .jform-submitting textarea,
+        .jform-submitting select,
+        .jform-submitting button {
+            cursor: not-allowed;
+        }
+
+        /* Message container styles */
+        .jform-message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            animation: jform-slide-down 0.3s ease-out;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .jform-message-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+
+        .jform-message-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+
+        .jform-message-info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
+        .jform-message-icon {
+            flex-shrink: 0;
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-top: 0.125rem;
+        }
+
+        .jform-message-content {
+            flex-grow: 1;
+        }
+
+        /* Slide down animation for messages */
+        @keyframes jform-slide-down {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Fade out animation */
+        .jform-fade-out {
+            animation: jform-fade-out 0.3s ease-out forwards;
+        }
+
+        @keyframes jform-fade-out {
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Additional utility classes for animations */
+        .jform-transition-all {
+            transition: all 0.3s ease;
+        }
+
+        .jform-opacity-0 { opacity: 0; }
+        .jform-opacity-50 { opacity: 0.5; }
+        .jform-opacity-60 { opacity: 0.6; }
+        .jform-opacity-100 { opacity: 1; }
+
+        .jform-scale-95 { transform: scale(0.95); }
+        .jform-scale-100 { transform: scale(1); }
+
+        .jform-pointer-events-none { pointer-events: none; }
+        .jform-pointer-events-auto { pointer-events: auto; }
+
+        /* Hidden utility */
+        .jform-hidden { display: none; }
+
+        /* Field Validation Styles */
+
+        /* Invalid field styling - red border and shadow */
+        .jform-field-invalid {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+        }
+
+        /* Error message below field */
+        .jform-field-error-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.25rem;
+            animation: jform-slide-down 0.2s ease-out;
+        }
+
+        .jform-field-error-icon {
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
+        /* Shake animation for invalid fields */
+        @keyframes jform-shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+
+        .jform-shake {
+            animation: jform-shake 0.4s ease-in-out;
+        }
+
         /* Layout System Base Styles */
         
         /* Stacked Layout (default) */
@@ -584,8 +756,24 @@ const FormCoreTemplate = `
         }`
 
 // formCoreHTMLTemplate contains the actual form structure
-const FormCoreHTMLTemplate = `<div class="form-container {{transformClasses .FormStyling.Styling.FormContainer.Classes}}">
-    <form action="{{getSubmissionURL .FormID}}" method="POST" class="{{transformClasses .FormStyling.CanvasLayout.ContainerClasses}}">
+const FormCoreHTMLTemplate = `
+<div class="form-container {{transformClasses .FormStyling.Styling.FormContainer.Classes}}">
+    <!-- Message container for submission feedback -->
+    <div id="jform-message-{{.FormID}}" class="jform-hidden"></div>
+
+    <!-- Fallback notice for users without JavaScript -->
+    <noscript>
+        <div class="jform-message jform-message-info">
+            <svg class="jform-message-icon" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <div class="jform-message-content">
+                <strong>JavaScript is disabled.</strong> The form will still work, but the page will reload when you submit.
+            </div>
+        </div>
+    </noscript>
+
+    <form action="{{getSubmissionURL .FormID}}" method="POST" class="{{transformClasses .FormStyling.CanvasLayout.ContainerClasses}}" data-jform-id="{{.FormID}}">
         {{range .FormStyling.CanvasLayout.Rows}}
         <div id="{{.ID}}" class="{{generateRowClasses .}}">
             {{range .Columns}}
@@ -602,6 +790,338 @@ const FormCoreHTMLTemplate = `<div class="form-container {{transformClasses .For
         </div>
         {{end}}
     </form>
+
+    <script>
+    (function() {
+        'use strict';
+
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFormSubmission);
+        } else {
+            initFormSubmission();
+        }
+
+        function initFormSubmission() {
+            const formId = '{{.FormID}}';
+            const form = document.querySelector('[data-jform-id="' + formId + '"]');
+            const messageContainer = document.getElementById('jform-message-' + formId);
+
+            if (!form) return;
+
+            // Setup validation event listeners
+            setupValidationListeners(form);
+
+            // Initial button state check
+            updateSubmitButtonState(form);
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleFormSubmission(form, messageContainer);
+            });
+        }
+
+        function setupValidationListeners(form) {
+            const fields = form.querySelectorAll('input, textarea, select');
+            fields.forEach(function(field) {
+                // Validate on blur
+                field.addEventListener('blur', function() {
+                    var result = validateField(field);
+                    if (!result.valid) {
+                        showFieldError(field, result.message);
+                    }
+                    updateSubmitButtonState(form);
+                });
+
+                // Clear errors and revalidate on input
+                field.addEventListener('input', function() {
+                    clearFieldError(field);
+                    updateSubmitButtonState(form);
+                });
+            });
+        }
+
+        function validateField(field) {
+            var value = field.value.trim();
+
+            // Check required
+            if (field.hasAttribute('required') && value === '') {
+                var msg = field.getAttribute('data-error-required') || 'This field is required';
+                return { valid: false, message: msg };
+            }
+
+            // If field is empty and not required, skip other validations
+            if (value === '') {
+                return { valid: true };
+            }
+
+            // Check minlength
+            if (field.hasAttribute('minlength')) {
+                var minLen = parseInt(field.getAttribute('minlength'));
+                if (value.length < minLen) {
+                    var msg = field.getAttribute('data-error-minlength') || 'Too short';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            // Check maxlength
+            if (field.hasAttribute('maxlength')) {
+                var maxLen = parseInt(field.getAttribute('maxlength'));
+                if (value.length > maxLen) {
+                    var msg = field.getAttribute('data-error-maxlength') || 'Too long';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            // Check email format
+            if (field.type === 'email') {
+                var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) {
+                    var msg = field.getAttribute('data-error-email') || 'Invalid email address';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            // Check phone format (basic check for digits)
+            if (field.type === 'tel' && field.hasAttribute('data-error-phone')) {
+                var phoneRegex = /^[0-9+\-\s()]+$/;
+                if (!phoneRegex.test(value)) {
+                    var msg = field.getAttribute('data-error-phone') || 'Invalid phone number';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            // Check pattern
+            if (field.hasAttribute('pattern')) {
+                var pattern = new RegExp(field.getAttribute('pattern'));
+                if (!pattern.test(value)) {
+                    var msg = field.getAttribute('data-error-pattern') || 'Invalid format';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            // Check min for number fields
+            if (field.hasAttribute('min') && field.type === 'number') {
+                var minVal = parseFloat(field.getAttribute('min'));
+                if (parseFloat(value) < minVal) {
+                    var msg = field.getAttribute('data-error-min') || 'Value too small';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            // Check max for number fields
+            if (field.hasAttribute('max') && field.type === 'number') {
+                var maxVal = parseFloat(field.getAttribute('max'));
+                if (parseFloat(value) > maxVal) {
+                    var msg = field.getAttribute('data-error-max') || 'Value too large';
+                    return { valid: false, message: msg };
+                }
+            }
+
+            return { valid: true };
+        }
+
+        function updateSubmitButtonState(form) {
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (!submitBtn) return;
+
+            var allValid = true;
+            var fields = form.querySelectorAll('input, textarea, select');
+
+            fields.forEach(function(field) {
+                var result = validateField(field);
+                if (!result.valid) {
+                    allValid = false;
+                }
+            });
+
+            submitBtn.disabled = !allValid;
+            if (!allValid) {
+                submitBtn.classList.add('jform-btn-disabled');
+            } else {
+                submitBtn.classList.remove('jform-btn-disabled');
+            }
+        }
+
+        function showFieldError(field, message) {
+            // Remove any existing error
+            clearFieldError(field);
+
+            // Add invalid styling to field
+            field.classList.add('jform-field-invalid', 'jform-shake');
+
+            // Remove shake animation after it completes
+            setTimeout(function() {
+                field.classList.remove('jform-shake');
+            }, 400);
+
+            // Create and insert error message
+            var errorDiv = document.createElement('div');
+            errorDiv.className = 'jform-field-error-message';
+            errorDiv.setAttribute('data-error-for', field.name || field.id);
+            errorDiv.innerHTML =
+                '<svg class="jform-field-error-icon" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">' +
+                '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>' +
+                '<span>' + escapeHtml(message) + '</span>';
+
+            // Insert after the field
+            field.parentNode.insertBefore(errorDiv, field.nextSibling);
+        }
+
+        function clearFieldError(field) {
+            // Remove invalid styling
+            field.classList.remove('jform-field-invalid', 'jform-shake');
+
+            // Find and remove error message
+            var errorMsg = field.parentNode.querySelector('[data-error-for="' + (field.name || field.id) + '"]');
+            if (errorMsg) {
+                errorMsg.remove();
+            }
+        }
+
+        function validateAllFields(form) {
+            var isValid = true;
+            var fields = form.querySelectorAll('input, textarea, select');
+            var firstInvalidField = null;
+
+            fields.forEach(function(field) {
+                var result = validateField(field);
+                if (!result.valid) {
+                    showFieldError(field, result.message);
+                    isValid = false;
+                    if (!firstInvalidField) {
+                        firstInvalidField = field;
+                    }
+                }
+            });
+
+            // Focus first invalid field
+            if (firstInvalidField) {
+                firstInvalidField.focus();
+            }
+
+            return isValid;
+        }
+
+        function handleFormSubmission(form, messageContainer) {
+            // Get submit button
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (!submitBtn) return;
+
+            // Clear any previous messages
+            clearMessage(messageContainer);
+
+            // Validate all fields before submission
+            var isValid = validateAllFields(form);
+
+            // If validation fails, stop here
+            if (!isValid) {
+                return;
+            }
+
+            // Add loading state
+            form.classList.add('jform-submitting');
+            submitBtn.classList.add('jform-btn-loading');
+            submitBtn.classList.remove('jform-btn-disabled');
+            submitBtn.disabled = true;
+
+            // Store original button text
+            const originalText = submitBtn.innerHTML;
+
+            // Add spinner
+            submitBtn.innerHTML = originalText + '<span class="jform-spinner"></span>';
+
+            // Prepare form data
+            const formData = new FormData(form);
+            const actionURL = form.getAttribute('action');
+
+            // Submit form
+            fetch(actionURL, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    return response.json().then(function(err) {
+                        throw new Error(err.message || 'Submission failed');
+                    });
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                // Success
+                showMessage(messageContainer, 'success', data.message || 'Form submitted successfully!');
+                form.reset();
+
+                // Clear all field errors
+                var fields = form.querySelectorAll('input, textarea, select');
+                fields.forEach(function(field) {
+                    clearFieldError(field);
+                });
+
+                // Remove loading state after brief delay
+                setTimeout(function() {
+                    removeLoadingState(form, submitBtn, originalText);
+                    // Update button state after reset
+                    updateSubmitButtonState(form);
+                }, 500);
+            })
+            .catch(function(error) {
+                // Error
+                showMessage(messageContainer, 'error', error.message || 'An error occurred. Please try again.');
+                removeLoadingState(form, submitBtn, originalText);
+            });
+        }
+
+        function removeLoadingState(form, submitBtn, originalText) {
+            form.classList.remove('jform-submitting');
+            submitBtn.classList.remove('jform-btn-loading');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+
+        function showMessage(container, type, message) {
+            if (!container) return;
+
+            const icon = type === 'success'
+                ? '<svg class="jform-message-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>'
+                : '<svg class="jform-message-icon" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>';
+
+            container.innerHTML =
+                '<div class="jform-message jform-message-' + type + '">' +
+                    icon +
+                    '<div class="jform-message-content">' + escapeHtml(message) + '</div>' +
+                '</div>';
+
+            container.classList.remove('jform-hidden');
+
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(function() {
+                    container.firstElementChild.classList.add('jform-fade-out');
+                    setTimeout(function() {
+                        clearMessage(container);
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        function clearMessage(container) {
+            if (!container) return;
+            container.innerHTML = '';
+            container.classList.add('jform-hidden');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    })();
+    </script>
 </div>`
 
 type TemplateIf interface {

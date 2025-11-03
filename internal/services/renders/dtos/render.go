@@ -47,9 +47,6 @@ type FormFieldValidation struct {
 	Phone            *bool    `json:"phone,omitempty"` // Simple phone validation flag
 	MinLength        *int     `json:"minLength,omitempty"`
 	MaxLength        *int     `json:"maxLength,omitempty"`
-	Pattern          *string  `json:"pattern,omitempty"`
-	Min              *float64 `json:"min,omitempty"`
-	Max              *float64 `json:"max,omitempty"`
 	Step             *float64 `json:"step,omitempty"`
 	MaxSize          *int64   `json:"maxSize,omitempty"`
 	MaxFiles         *int     `json:"maxFiles,omitempty"`
@@ -66,6 +63,11 @@ type FormFieldValidation struct {
 type FormFieldTransl struct {
 	Label         string            `json:"label" validate:"required"`
 	Placeholder   string            `json:"placeholder,omitempty"`
+	Required      string            `json:"required,omitempty"`
+	MinLength     string            `json:"minLength,omitempty"`
+	MaxLength     string            `json:"maxLength,omitempty"`
+	Email         string            `json:"email,omitempty"`
+	Phone         string            `json:"phone,omitempty"`
 	HelpText      string            `json:"helpText,omitempty"`
 	ErrorMessages map[string]string `json:"errorMessages,omitempty"`
 	Options       []FormFieldOption `json:"options,omitempty"`

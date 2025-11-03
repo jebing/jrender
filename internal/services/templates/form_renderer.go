@@ -36,6 +36,56 @@ type FormRenderer struct {
 	captchaSiteKey string
 }
 
+// buildValidationAttributes generates data-error-* attributes and HTML5 validation attributes
+// from field validation rules and translations
+func buildValidationAttributes(field *dtos.FormField, translation dtos.FormFieldTransl) string {
+	if field == nil {
+		return ""
+	}
+
+	var attrs []string
+
+	// Required validation
+	if field.Required && translation.Required != "" {
+		attrs = append(attrs, fmt.Sprintf(` data-error-required="%s"`, template.HTMLEscapeString(translation.Required)))
+	}
+
+	// Only add validation attributes if Validation is defined
+	if field.Validation == nil {
+		return strings.Join(attrs, "")
+	}
+
+	v := field.Validation
+
+	// MinLength validation
+	if v.MinLength != nil && *v.MinLength > 0 {
+		attrs = append(attrs, fmt.Sprintf(` minlength="%d"`, *v.MinLength))
+		if translation.MinLength != "" {
+			attrs = append(attrs, fmt.Sprintf(` data-error-minlength="%s"`, template.HTMLEscapeString(translation.MinLength)))
+		}
+	}
+
+	// MaxLength validation
+	if v.MaxLength != nil && *v.MaxLength > 0 {
+		attrs = append(attrs, fmt.Sprintf(` maxlength="%d"`, *v.MaxLength))
+		if translation.MaxLength != "" {
+			attrs = append(attrs, fmt.Sprintf(` data-error-maxlength="%s"`, template.HTMLEscapeString(translation.MaxLength)))
+		}
+	}
+
+	// Email validation
+	if v.Email != nil && *v.Email && translation.Email != "" {
+		attrs = append(attrs, fmt.Sprintf(` data-error-email="%s"`, template.HTMLEscapeString(translation.Email)))
+	}
+
+	// Phone validation
+	if v.Phone != nil && *v.Phone && translation.Phone != "" {
+		attrs = append(attrs, fmt.Sprintf(` data-error-phone="%s"`, template.HTMLEscapeString(translation.Phone)))
+	}
+
+	return strings.Join(attrs, "")
+}
+
 // NewFormRenderer creates a new shared form renderer
 func NewFormRenderer(captchaSiteKey string) *FormRenderer {
 	renderer := &FormRenderer{
@@ -558,7 +608,7 @@ func renderLabel(fieldID, labelClasses, label string, required bool) string {
 	escapedLabel := template.HTMLEscapeString(label)
 	requiredMark := ""
 	if required {
-		requiredMark = " *"
+		requiredMark = ` <span class="jform-text-red-600">*</span>`
 	}
 
 	if labelClasses != "" {
@@ -573,7 +623,7 @@ func renderLabel(fieldID, labelClasses, label string, required bool) string {
 func renderFieldSet(legend string, labelClasses string, required bool, options string) string {
 	requiredMark := ""
 	if required {
-		requiredMark = " *"
+		requiredMark = ` <span class="jform-text-red-600">*</span>`
 	}
 	return fmt.Sprintf(`<legend class="%s">%s%s</legend>%s`,
 		labelClasses,
@@ -651,36 +701,29 @@ func (r *FormRenderer) RenderFieldHTML(field *dtos.FormField, translation dtos.F
 			inputType = "tel"
 		}
 
-		required := ""
-		if field.Required {
-			required = " required"
-		}
-
 		placeholder := ""
 		if translation.Placeholder != "" {
 			placeholder = fmt.Sprintf(` placeholder="%s"`, template.HTMLEscapeString(translation.Placeholder))
 		}
 
-		return r.renderInputField(field.Type, allLayoutClasses, labelLayoutClasses, primaryLayout, field.ID, field.Name, translation.Label, field.Required, inputType, placeholder, required)
+		return r.renderInputField(field, translation, allLayoutClasses, labelLayoutClasses, primaryLayout, inputType, placeholder)
 
 	case FieldTypeTextarea:
-		required := ""
-		if field.Required {
-			required = " required"
-		}
-
 		placeholder := ""
 		if translation.Placeholder != "" {
 			placeholder = fmt.Sprintf(` placeholder="%s"`, template.HTMLEscapeString(translation.Placeholder))
 		}
 
-		return r.renderTextareaField(field.Type, allLayoutClasses, labelLayoutClasses, primaryLayout, field.ID, field.Name, translation.Label, field.Required, placeholder, required)
+		return r.renderTextareaField(field, translation, allLayoutClasses, labelLayoutClasses, primaryLayout, placeholder)
 
 	case FieldTypeSelect:
 		required := ""
 		if field.Required {
 			required = " required"
 		}
+
+		// Build validation attributes
+		validationAttrs := buildValidationAttributes(field, translation)
 
 		// Build select options
 		var options strings.Builder
@@ -707,11 +750,12 @@ func (r *FormRenderer) RenderFieldHTML(field *dtos.FormField, translation dtos.F
 
 		labelHTML := renderLabel(field.ID, "inline-label "+labelLayoutClasses, translation.Label, field.Required)
 		content := fmt.Sprintf(`%s
-			<select id="%s" name="%s"%s>%s</select>`,
+			<select id="%s" name="%s"%s%s>%s</select>`,
 			labelHTML,
 			template.HTMLEscapeString(field.ID),
 			template.HTMLEscapeString(field.Name),
 			required,
+			validationAttrs,
 			options.String())
 		return renderFieldWrapper(field.Type, allLayoutClasses, content)
 
@@ -809,21 +853,24 @@ func (r *FormRenderer) RenderFieldHTML(field *dtos.FormField, translation dtos.F
 }
 
 // renderInputField renders an input field with the specified layout
-func (r *FormRenderer) renderInputField(fieldType, layoutClasses, labelLayoutClasses string, layout dtos.LayoutSettings, fieldID, fieldName, label string, required bool, inputType, placeholder, requiredAttr string) template.HTML {
-	escapedID := template.HTMLEscapeString(fieldID)
-	escapedName := template.HTMLEscapeString(fieldName)
-	escapedLabel := template.HTMLEscapeString(label)
-	requiredMark := ""
-	if required {
-		requiredMark = " *"
+func (r *FormRenderer) renderInputField(field *dtos.FormField, translation dtos.FormFieldTransl, layoutClasses, labelLayoutClasses string, layout dtos.LayoutSettings, inputType, placeholder string) template.HTML {
+	escapedID := template.HTMLEscapeString(field.ID)
+	escapedName := template.HTMLEscapeString(field.Name)
+	escapedLabel := template.HTMLEscapeString(translation.Label)
+	requiredAttr := ""
+	if field.Required {
+		requiredAttr = " required"
 	}
+
+	// Build validation attributes from field.Validation and translation
+	validationAttrs := buildValidationAttributes(field, translation)
 
 	switch layout.LabelLayout {
 	case "hidden":
 		// Hidden layout: only input with placeholder, no label
-		content := fmt.Sprintf(`<input type="%s" id="%s" name="%s"%s%s>`,
-			inputType, escapedID, escapedName, placeholder, requiredAttr)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+		content := fmt.Sprintf(`<input type="%s" id="%s" name="%s"%s%s%s>`,
+			inputType, escapedID, escapedName, placeholder, requiredAttr, validationAttrs)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 
 	case "floating":
 		// Floating layout: input with floating label
@@ -831,50 +878,54 @@ func (r *FormRenderer) renderInputField(fieldType, layoutClasses, labelLayoutCla
 		if floatingPlaceholder == "" {
 			floatingPlaceholder = fmt.Sprintf(` placeholder="%s"`, escapedLabel)
 		}
+		labelHtml := renderLabel(field.ID, "floating-label "+labelLayoutClasses, translation.Label, field.Required)
 		content := fmt.Sprintf(`<div class="floating-input-container">
-				<input type="%s" id="%s" name="%s"%s%s>
-				<label for="%s" class="floating-label">%s%s</label>
+				<input type="%s" id="%s" name="%s"%s%s%s>
+				%s
 			</div>`,
-			inputType, escapedID, escapedName, floatingPlaceholder, requiredAttr,
-			escapedID, escapedLabel, requiredMark)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+			inputType, escapedID, escapedName, floatingPlaceholder, requiredAttr, validationAttrs,
+			labelHtml)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 
 	case "inline":
 		// Inline layout: label and input side by side
-		labelHTML := renderLabel(fieldID, "inline-label "+labelLayoutClasses, label, required)
+		labelHTML := renderLabel(field.ID, "inline-label "+labelLayoutClasses, translation.Label, field.Required)
 		content := fmt.Sprintf(`%s
 			<div class="inline-input">
-				<input type="%s" id="%s" name="%s"%s%s>
+				<input type="%s" id="%s" name="%s"%s%s%s>
 			</div>`,
-			labelHTML, inputType, escapedID, escapedName, placeholder, requiredAttr)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+			labelHTML, inputType, escapedID, escapedName, placeholder, requiredAttr, validationAttrs)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 
 	default: // "stacked" or fallback
 		// Stacked layout: label above input (traditional)
-		labelHTML := renderLabel(fieldID, "", label, required)
+		labelHTML := renderLabel(field.ID, "", translation.Label, field.Required)
 		content := fmt.Sprintf(`%s
-			<input type="%s" id="%s" name="%s"%s%s>`,
-			labelHTML, inputType, escapedID, escapedName, placeholder, requiredAttr)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+			<input type="%s" id="%s" name="%s"%s%s%s>`,
+			labelHTML, inputType, escapedID, escapedName, placeholder, requiredAttr, validationAttrs)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 	}
 }
 
 // renderTextareaField renders a textarea field with the specified layout
-func (r *FormRenderer) renderTextareaField(fieldType, layoutClasses, labelLayoutClasses string, layout dtos.LayoutSettings, fieldID, fieldName, label string, required bool, placeholder, requiredAttr string) template.HTML {
-	escapedID := template.HTMLEscapeString(fieldID)
-	escapedName := template.HTMLEscapeString(fieldName)
-	escapedLabel := template.HTMLEscapeString(label)
-	requiredMark := ""
-	if required {
-		requiredMark = " *"
+func (r *FormRenderer) renderTextareaField(field *dtos.FormField, translation dtos.FormFieldTransl, layoutClasses, labelLayoutClasses string, layout dtos.LayoutSettings, placeholder string) template.HTML {
+	escapedID := template.HTMLEscapeString(field.ID)
+	escapedName := template.HTMLEscapeString(field.Name)
+	escapedLabel := template.HTMLEscapeString(translation.Label)
+	requiredAttr := ""
+	if field.Required {
+		requiredAttr = " required"
 	}
+
+	// Build validation attributes from field.Validation and translation
+	validationAttrs := buildValidationAttributes(field, translation)
 
 	switch layout.LabelLayout {
 	case "hidden":
 		// Hidden layout: only textarea with placeholder, no label
-		content := fmt.Sprintf(`<textarea id="%s" name="%s"%s%s></textarea>`,
-			escapedID, escapedName, placeholder, requiredAttr)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+		content := fmt.Sprintf(`<textarea id="%s" name="%s"%s%s%s></textarea>`,
+			escapedID, escapedName, placeholder, requiredAttr, validationAttrs)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 
 	case "floating":
 		// Floating layout: textarea with floating label
@@ -882,31 +933,32 @@ func (r *FormRenderer) renderTextareaField(fieldType, layoutClasses, labelLayout
 		if floatingPlaceholder == "" {
 			floatingPlaceholder = fmt.Sprintf(` placeholder="%s"`, escapedLabel)
 		}
+		labelHtml := renderLabel(field.ID, "floating-label "+labelLayoutClasses, translation.Label, field.Required)
 		content := fmt.Sprintf(`<div class="floating-input-container">
-				<textarea id="%s" name="%s"%s%s></textarea>
-				<label for="%s" class="floating-label">%s%s</label>
+				<textarea id="%s" name="%s"%s%s%s></textarea>
+				%s
 			</div>`,
-			escapedID, escapedName, floatingPlaceholder, requiredAttr,
-			escapedID, escapedLabel, requiredMark)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+			escapedID, escapedName, floatingPlaceholder, requiredAttr, validationAttrs,
+			labelHtml)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 
 	case "inline":
 		// Inline layout: label and textarea side by side
-		labelHTML := renderLabel(fieldID, "inline-label "+labelLayoutClasses, label, required)
+		labelHTML := renderLabel(field.ID, "inline-label "+labelLayoutClasses, translation.Label, field.Required)
 		content := fmt.Sprintf(`%s
 			<div class="inline-input">
-				<textarea id="%s" name="%s"%s%s></textarea>
+				<textarea id="%s" name="%s"%s%s%s></textarea>
 			</div>`,
-			labelHTML, escapedID, escapedName, placeholder, requiredAttr)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+			labelHTML, escapedID, escapedName, placeholder, requiredAttr, validationAttrs)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 
 	default: // "stacked" or fallback
 		// Stacked layout: label above textarea (traditional)
-		labelHTML := renderLabel(fieldID, "", label, required)
+		labelHTML := renderLabel(field.ID, "", translation.Label, field.Required)
 		content := fmt.Sprintf(`%s
-			<textarea id="%s" name="%s"%s%s></textarea>`,
-			labelHTML, escapedID, escapedName, placeholder, requiredAttr)
-		return renderFieldWrapper(fieldType, layoutClasses, content)
+			<textarea id="%s" name="%s"%s%s%s></textarea>`,
+			labelHTML, escapedID, escapedName, placeholder, requiredAttr, validationAttrs)
+		return renderFieldWrapper(field.Type, layoutClasses, content)
 	}
 }
 
