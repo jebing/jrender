@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Froconnect Form Embed Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f9fafb;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        h1 {
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+        .description {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+        .test-section {
+            margin-bottom: 3rem;
+        }
+        .test-section h2 {
+            color: #374151;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .code-block {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        .code-block code {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .language-switcher {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .language-switcher select {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Froconnect Form Embed Test Page</h1>
+        <p class="description">
+            This page demonstrates different ways to embed Froconnect forms using the universal embed.js script.
+        </p>
+    </div>
+
+    <!-- Test 1: Basic Embed -->
+    <div class="container test-section">
+        <h2>Test 1: Basic Embed (Auto-detect Language)</h2>
+        <p>Form will use browser language or fall back to default.</p>
+
+        <div class="code-block">
+            <code>&lt;script src="http://localhost:9200/embed.js"&gt;&lt;/script&gt;
+&lt;div data-froconnect-form="test-form-id-1"&gt;&lt;/div&gt;</code>
+        </div>
+
+        <div class="info-box">
+            <strong>Expected behavior:</strong> Form loads with browser language detection
+        </div>
+
+        <!-- Actual embed -->
+        <div data-froconnect-form="test-form-id-1"></div>
+    </div>
+
+    <!-- Test 2: Fixed Language -->
+    <div class="container test-section">
+        <h2>Test 2: Fixed Language (German)</h2>
+        <p>Form explicitly set to German language.</p>
+
+        <div class="code-block">
+            <code>&lt;div data-froconnect-form="test-form-id-2" data-froconnect-lang="de"&gt;&lt;/div&gt;</code>
+        </div>
+
+        <div class="info-box">
+            <strong>Expected behavior:</strong> Form loads in German
+        </div>
+
+        <!-- Actual embed -->
+        <div data-froconnect-form="test-form-id-2" data-froconnect-lang="de"></div>
+    </div>
+
+    <!-- Test 3: SPA with Auto-Reload -->
+    <div class="container test-section">
+        <h2>Test 3: SPA with Auto-Reload on Language Change</h2>
+        <p>Form automatically reloads when language attribute changes (for Single Page Applications).</p>
+
+        <div class="code-block">
+            <code>&lt;div
+  data-froconnect-form="test-form-id-3"
+  data-froconnect-lang="en"
+  data-froconnect-reload-on-change="true"
+&gt;&lt;/div&gt;</code>
+        </div>
+
+        <div class="language-switcher">
+            <label for="lang-selector-3">Change Language (simulates SPA language switch):</label>
+            <select id="lang-selector-3" onchange="changeLanguage('test-form-id-3', this.value)">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+            </select>
+        </div>
+
+        <div class="info-box">
+            <strong>Expected behavior:</strong> Form reloads automatically when you change the language above. Form values are preserved.
+        </div>
+
+        <!-- Actual embed -->
+        <div
+            id="form-container-3"
+            data-froconnect-form="test-form-id-3"
+            data-froconnect-lang="en"
+            data-froconnect-reload-on-change="true"
+        ></div>
+    </div>
+
+    <!-- Test 4: Multiple Forms -->
+    <div class="container test-section">
+        <h2>Test 4: Multiple Forms on Same Page</h2>
+        <p>Multiple forms can coexist. CSS and JS are loaded only once.</p>
+
+        <div class="code-block">
+            <code>&lt;div data-froconnect-form="test-form-id-4a" data-froconnect-lang="en"&gt;&lt;/div&gt;
+&lt;div data-froconnect-form="test-form-id-4b" data-froconnect-lang="de"&gt;&lt;/div&gt;</code>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div>
+                <h3>Form A (English)</h3>
+                <div data-froconnect-form="test-form-id-4a" data-froconnect-lang="en"></div>
+            </div>
+            <div>
+                <h3>Form B (German)</h3>
+                <div data-froconnect-form="test-form-id-4b" data-froconnect-lang="de"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test 5: Manual Reload API -->
+    <div class="container test-section">
+        <h2>Test 5: Manual Reload via JavaScript API</h2>
+        <p>Use the public API to manually reload forms.</p>
+
+        <div class="code-block">
+            <code>// Change language and reload manually
+const form = document.querySelector('[data-froconnect-form="test-form-id-5"]');
+form.setAttribute('data-froconnect-lang', 'de');
+window.Froconnect.reload('test-form-id-5');</code>
+        </div>
+
+        <div class="language-switcher">
+            <label for="lang-selector-5">Change Language (manual reload):</label>
+            <select id="lang-selector-5" onchange="manualReload('test-form-id-5', this.value)">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+            </select>
+        </div>
+
+        <!-- Actual embed -->
+        <div data-froconnect-form="test-form-id-5" data-froconnect-lang="en"></div>
+    </div>
+
+    <!-- Load the embed script (loads all forms above) -->
+    <script src="http://localhost:9200/embed.js"></script>
+
+    <!-- Test helper scripts -->
+    <script>
+        // For Test 3: Auto-reload on attribute change
+        function changeLanguage(formId, lang) {
+            const container = document.querySelector('[data-froconnect-form="' + formId + '"]');
+            if (container) {
+                console.log('Changing language to:', lang);
+                container.setAttribute('data-froconnect-lang', lang);
+                // The MutationObserver in embed.js will automatically reload the form
+            }
+        }
+
+        // For Test 5: Manual reload
+        function manualReload(formId, lang) {
+            const container = document.querySelector('[data-froconnect-form="' + formId + '"]');
+            if (container) {
+                console.log('Manually reloading with language:', lang);
+                container.setAttribute('data-froconnect-lang', lang);
+                window.Froconnect.reload(formId);
+            }
+        }
+
+        // Log when Froconnect is ready
+        window.addEventListener('load', function() {
+            console.log('Page loaded. Froconnect API available:', typeof window.Froconnect !== 'undefined');
+        });
+    </script>
+</body>
+</html>

@@ -12,6 +12,7 @@ type FormData struct {
 // FormCoreData represents the data structure for core form rendering
 type FormCoreData struct {
 	FormData
+	Language        string // Language wanted for the form
 	DefaultLanguage string // Default language for the form
 	GridColumns     int    // Number of grid columns (default: 12)
 }

@@ -6,6 +6,9 @@ database:
   dbname: jform_embed_db
   max_conns: 10
   sslmode: disable
+
+base:
+  url: http://localhost:9300
   
 remote:
   jform: http://localhost:9000

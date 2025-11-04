@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/cors"
 	"revonoir.com/jrender/conns/configs"
 	"revonoir.com/jrender/conns/databases"
+	"revonoir.com/jrender/controllers/impl/embeds"
 	"revonoir.com/jrender/controllers/impl/forms"
 	"revonoir.com/jrender/webapp"
 )
@@ -59,7 +60,11 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
+	// Register form routes
 	forms.Route(r, config)
+
+	// Register embed routes (for embeddable forms)
+	embeds.Route(r, config)
 
 	webapp.Run(r)
 }

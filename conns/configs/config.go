@@ -38,6 +38,9 @@ type Configuration struct {
 	Captcha struct {
 		Provider CaptchaProvider `mapstructure:"provider"`
 	} `mapstructure:"captcha"`
+	Base struct {
+		URL string `mapstructure:"url"`
+	} `mapstructure:"base"`
 }
 
 type ConfigManager struct {

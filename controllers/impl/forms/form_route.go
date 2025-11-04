@@ -18,7 +18,7 @@ func Route(r chi.Router, config configs.Configuration) {
 
 	// Create CSS template with shared functions
 	cssTemplate := template.New("form_core_css").Funcs(renderer.GetFuncMap())
-	cssTemplate, err := cssTemplate.Parse(templates.FormCoreTemplate)
+	cssTemplate, err := cssTemplate.Parse(templates.FormCoreCSSDynamic)
 	if err != nil {
 		panic("Failed to parse form core CSS template: " + err.Error())
 	}
@@ -29,7 +29,15 @@ func Route(r chi.Router, config configs.Configuration) {
 	if err != nil {
 		panic("Failed to parse form core HTML template: " + err.Error())
 	}
-	formCoreEngine := templates.NewFormCoreEngine(cssTemplate, htmlTemplate)
+
+	// Create Javascript template with shared functions
+	jsTemplate := template.New("form_core_js").Funcs(renderer.GetFuncMap())
+	jsTemplate, err = jsTemplate.Parse(templates.FormCoreJsTemplate)
+	if err != nil {
+		panic("Failed to parse form core Javascript template: " + err.Error())
+	}
+
+	formCoreEngine := templates.NewFormCoreEngine(cssTemplate, htmlTemplate, jsTemplate)
 
 	// Create wrapper template
 	wrapperTemplate := template.New("form_production_wrapper")

@@ -32,26 +32,30 @@ const CompleteHTMLTemplate = `<!DOCTYPE html>
             color: #111827;
             background: transparent;
         }
-        
-        {{.CoreCSS}}
+        {{.CoreCSSStatic}}
+        {{.CoreCSSDynamic}}
     </style>
 </head>
 <body>
     {{.CoreHTML}}
-
+    {{.CoreJavascript}}
 </body>
 </html>`
 
 type RequestWrapper struct {
 	Name            string
 	DefaultLanguage string
-	CoreCSS         template.CSS
+	CoreCSSStatic   template.CSS
+	CoreCSSDynamic  template.CSS
 	CoreHTML        template.HTML
+	CoreJavascript  template.HTML
 }
 
 type FormCoreEngineIf interface {
-	GenerateCSS(data dtos.FormCoreData) (string, error)
+	GenerateCSSStatic(data dtos.FormCoreData) (string, error)
+	GenerateCSSDynamic(data dtos.FormCoreData) (string, error)
 	GenerateHTML(data dtos.FormCoreData) (string, error)
+	GenerateJavascript(data dtos.FormCoreData) (string, error)
 }
 
 type EmbeddedFormEngine struct {
@@ -83,9 +87,14 @@ func (fe EmbeddedFormEngine) GenerateHTML(data *dto.FormResponse) (string, error
 	}
 
 	// Generate core CSS and HTML
-	coreCSS, err := fe.coreEngine.GenerateCSS(coreData)
+	coreCSSDynamic, err := fe.coreEngine.GenerateCSSDynamic(coreData)
 	if err != nil {
-		return "", jerrors.InternalServerError("failed to generate core CSS")
+		return "", jerrors.InternalServerError("failed to generate core CSS dynamic")
+	}
+
+	coreCSSStatic, err := fe.coreEngine.GenerateCSSStatic(coreData)
+	if err != nil {
+		return "", jerrors.InternalServerError("failed to generate core CSS static")
 	}
 
 	coreHTML, err := fe.coreEngine.GenerateHTML(coreData)
@@ -93,11 +102,18 @@ func (fe EmbeddedFormEngine) GenerateHTML(data *dto.FormResponse) (string, error
 		return "", jerrors.InternalServerError("failed to generate core HTML")
 	}
 
+	coreJavascript, err := fe.coreEngine.GenerateJavascript(coreData)
+	if err != nil {
+		return "", jerrors.InternalServerError("failed to generate core Javascript")
+	}
+
 	wrapper := RequestWrapper{
 		Name:            data.Name,
 		DefaultLanguage: coreData.DefaultLanguage,
-		CoreCSS:         template.CSS(coreCSS),
+		CoreCSSStatic:   template.CSS(coreCSSStatic),
+		CoreCSSDynamic:  template.CSS(coreCSSDynamic),
 		CoreHTML:        template.HTML(coreHTML),
+		CoreJavascript:  template.HTML(coreJavascript),
 	}
 
 	var buf bytes.Buffer
