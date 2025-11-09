@@ -10,7 +10,8 @@ import (
 
 // FormSubmissionURLTemplate is the URL template for form submissions
 const (
-	FormSubmissionURLTemplate = "http://localhost:9000/api/public/v1/embeds/%s/submissions"
+	// FormSubmissionURLTemplate = "http://localhost:9000/api/public/v1/embeds/%s/submissions"
+	FormSubmissionURLTemplate = "%s/api/public/v1/embeds/%s/submissions"
 
 	// Input field types - fields that accept user input
 	FieldTypeText     = "text"
@@ -87,7 +88,7 @@ func buildValidationAttributes(field *dtos.FormField, translation dtos.FormField
 }
 
 // NewFormRenderer creates a new shared form renderer
-func NewFormRenderer(captchaSiteKey string) *FormRenderer {
+func NewFormRenderer(baseURL string, captchaSiteKey string) *FormRenderer {
 	renderer := &FormRenderer{
 		captchaSiteKey: captchaSiteKey,
 	}
@@ -117,7 +118,7 @@ func NewFormRenderer(captchaSiteKey string) *FormRenderer {
 			return template.CSS(sanitized)
 		},
 		"getSubmissionURL": func(embedID string) string {
-			return fmt.Sprintf(FormSubmissionURLTemplate, embedID)
+			return fmt.Sprintf(FormSubmissionURLTemplate, baseURL, embedID)
 		},
 	}
 

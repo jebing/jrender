@@ -14,7 +14,7 @@ import (
 func Route(r chi.Router, config configs.Configuration) {
 
 	// Create FormRenderer to get template function map
-	renderer := templates.NewFormRenderer(config.Captcha.Provider.ReCaptcha.SiteKey)
+	renderer := templates.NewFormRenderer(config.Base.URL, config.Captcha.Provider.ReCaptcha.SiteKey)
 
 	// Parse CSS template with shared functions
 	cssTemplate := template.New("form_core_css").Funcs(renderer.GetFuncMap())
@@ -37,15 +37,22 @@ func Route(r chi.Router, config configs.Configuration) {
 		panic("Failed to parse form core Javascript template: " + err.Error())
 	}
 
+	sharedJsTemplate := texttemplate.New("form_core_shared_js").Funcs(renderer.GetFuncMap())
+	sharedJsTemplate, err = sharedJsTemplate.Parse(templates.FormSharedJavascriptTemplate)
+	if err != nil {
+		panic("Failed to parse form core shared Javascript template: " + err.Error())
+	}
+
 	// Create FormCoreEngine for server-side rendering
-	formCoreEngine := templates.NewFormCoreEngine(cssTemplate, htmlTemplate, jsTemplate)
+	formCoreEngine := templates.NewFormCoreEngine(cssTemplate, htmlTemplate, jsTemplate, sharedJsTemplate)
 
 	// Parse the embed script template (text/template, not html/template)
 	embedScriptTmpl, err := texttemplate.New("embed_script").Parse(templates.EmbedScriptTemplate)
 	if err != nil {
 		panic("Failed to parse embed script template: " + err.Error())
 	}
-	embedScriptGenerator := templates.NewEmbedScriptGenerator(config.Base.URL, embedScriptTmpl)
+
+	embedScriptGenerator := templates.NewEmbedScriptGenerator(config.Base.URL, embedScriptTmpl, formCoreEngine)
 
 	jformClient := remotes.NewJformClient(config)
 	embedService := embeds.NewEmbedService(jformClient, embedScriptGenerator, formCoreEngine)
@@ -54,7 +61,7 @@ func Route(r chi.Router, config configs.Configuration) {
 	embedController := NewEmbedController(embedService)
 
 	// Universal embed script (cached, shared across all forms)
-	r.Get("/embed.js", embedController.HandleEmbedScript)
+	r.Get("/embedv1.js", embedController.HandleEmbedScript)
 
 	// Public API routes for embed forms
 	r.Route("/api/public/v1/embeds", func(r chi.Router) {

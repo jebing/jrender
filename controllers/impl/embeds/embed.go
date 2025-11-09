@@ -2,7 +2,9 @@ package embeds
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -14,6 +16,7 @@ import (
 type EmbedServiceIf interface {
 	GenerateEmbedScript(formID string) (string, error)
 	GenerateDynamicHTML(formID uuid.UUID, lang string) (dtos.DynamicHTMLData, error)
+	SubmitForm(formID uuid.UUID, data map[string]interface{}, headers http.Header) error
 }
 
 type EmbedController struct {
@@ -23,6 +26,31 @@ type EmbedController struct {
 func NewEmbedController(embedService EmbedServiceIf) *EmbedController {
 	return &EmbedController{
 		embedService: embedService,
+	}
+}
+
+func (c EmbedController) HandleSubmitForm(w http.ResponseWriter, r *http.Request) {
+	embedID := chi.URLParam(r, "embedId")
+	formID, err := uuid.Parse(embedID)
+	if err != nil {
+		jerrors.WriteErrorResponse(w, jerrors.BadRequest("invalid embed ID"))
+		return
+	}
+
+	data := map[string]interface{}{}
+	// limit the body to avoid ddos
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*10) // 10MB
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		slog.Error("failed to decode form data", "error", err)
+		jerrors.WriteErrorResponse(w, jerrors.BadRequest("invalid form data"))
+		return
+	}
+	headers := r.Header
+
+	err = c.embedService.SubmitForm(formID, data, headers)
+	if err != nil {
+		jerrors.WriteErrorResponse(w, err)
+		return
 	}
 }
 
@@ -80,7 +108,54 @@ func (c EmbedController) HandleGetFormData(w http.ResponseWriter, r *http.Reques
 func (c *EmbedController) HandleFormSubmission(w http.ResponseWriter, r *http.Request) {
 	embedID := chi.URLParam(r, "embedId")
 
+	formID, err := uuid.Parse(embedID)
+	if err != nil {
+		jerrors.WriteErrorResponse(w, jerrors.BadRequest("invalid embed ID"))
+		return
+	}
+
+	// Parse submission data
+	if err := r.ParseForm(); err != nil {
+		slog.Warn("invalid submission data", "error", err)
+		jerrors.WriteErrorResponse(w, jerrors.BadRequest("invalid submission data"))
+		return
+	}
+
+	submissionData := make(map[string]interface{})
+
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		// Parse JSON data
+		r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*10) // 10MB
+		if err := json.NewDecoder(r.Body).Decode(&submissionData); err != nil {
+			jerrors.WriteErrorResponse(w, jerrors.BadRequest("invalid form data"))
+			return
+		}
+	} else {
+		err := r.ParseMultipartForm(10 << 20) // 10 MB
+		if err != nil {
+			jerrors.WriteErrorResponse(w, jerrors.BadRequest("invalid form data"))
+			return
+		}
+
+		keyValueForm := r.PostForm
+		for key, value := range keyValueForm {
+			// if there are more than one value, convert to comma separated string
+			if len(value) > 1 {
+				submissionData[key] = strings.Join(value, ",")
+			} else {
+				submissionData[key] = value[0]
+			}
+		}
+	}
+
 	// TODO: Implement actual form submission logic
+	err = c.embedService.SubmitForm(formID, submissionData, r.Header)
+	if err != nil {
+		jerrors.WriteErrorResponse(w, err)
+		return
+	}
+
 	// For now, return success response
 	response := map[string]interface{}{
 		"success": true,

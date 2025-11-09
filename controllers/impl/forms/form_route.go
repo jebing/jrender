@@ -3,6 +3,7 @@ package forms
 import (
 	"fmt"
 	"html/template"
+	texttemplate "text/template"
 
 	"github.com/go-chi/chi/v5"
 	"revonoir.com/jrender/conns/configs"
@@ -14,7 +15,7 @@ import (
 func Route(r chi.Router, config configs.Configuration) {
 	jformClient := remotes.NewJformClient(config)
 
-	renderer := templates.NewFormRenderer(config.Captcha.Provider.ReCaptcha.SiteKey)
+	renderer := templates.NewFormRenderer(config.Base.URL, config.Captcha.Provider.ReCaptcha.SiteKey)
 
 	// Create CSS template with shared functions
 	cssTemplate := template.New("form_core_css").Funcs(renderer.GetFuncMap())
@@ -37,10 +38,16 @@ func Route(r chi.Router, config configs.Configuration) {
 		panic("Failed to parse form core Javascript template: " + err.Error())
 	}
 
-	formCoreEngine := templates.NewFormCoreEngine(cssTemplate, htmlTemplate, jsTemplate)
+	sharedJsTemplate := texttemplate.New("form_core_shared_js").Funcs(renderer.GetFuncMap())
+	sharedJsTemplate, err = sharedJsTemplate.Parse(templates.FormSharedJavascriptTemplate)
+	if err != nil {
+		panic("Failed to parse form core shared Javascript template: " + err.Error())
+	}
+
+	formCoreEngine := templates.NewFormCoreEngine(cssTemplate, htmlTemplate, jsTemplate, sharedJsTemplate)
 
 	// Create wrapper template
-	wrapperTemplate := template.New("form_production_wrapper")
+	wrapperTemplate := texttemplate.New("form_production_wrapper")
 	wrapperTemplate, err = wrapperTemplate.Parse(templates.CompleteHTMLTemplate)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to parse form production wrapper template: %v", err))

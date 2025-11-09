@@ -3,6 +3,7 @@ package embeds
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"slices"
 
 	"github.com/google/uuid"
@@ -18,6 +19,7 @@ type EmbedScriptGeneratorIf interface {
 
 type JFormClientIf interface {
 	GetForm(ctx context.Context, formID uuid.UUID) (*dto.FormResponse, error)
+	SubmitForm(ctx context.Context, formID uuid.UUID, data map[string]interface{}, headers http.Header) error
 }
 
 type FormCoreEngineIf interface {
@@ -37,6 +39,20 @@ func NewEmbedService(jformClient JFormClientIf, embedScriptGenerator EmbedScript
 		embedScriptGenerator: embedScriptGenerator,
 		formCoreEngine:       formCoreEngine,
 	}
+}
+
+func (s EmbedService) SubmitForm(formID uuid.UUID, data map[string]interface{}, headers http.Header) error {
+	slog.Info("submitting form", "formID", formID, "data", data, "headers", headers)
+	for key, value := range data {
+		slog.Info("data", "key", key, "value", value)
+	}
+
+	err := s.jformClient.SubmitForm(context.Background(), formID, data, headers)
+	if err != nil {
+		slog.Error("failed to submit form", "error", err, "formID", formID)
+		return err
+	}
+	return nil
 }
 
 func (s EmbedService) GenerateEmbedScript(formID string) (string, error) {

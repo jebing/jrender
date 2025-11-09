@@ -3,7 +3,10 @@ package templates
 import (
 	"bytes"
 	_ "embed"
+	"log/slog"
 	"text/template"
+
+	"revonoir.com/jrender/internal/services/renders/dtos"
 )
 
 //go:embed embed_script_template.js
@@ -17,21 +20,27 @@ type EmbedScriptTemplateData struct {
 	SubmitFunctions     string
 }
 
-type EmbedScriptGenerator struct {
-	apiBaseURL     string
-	parsedTemplate *template.Template
-	cssContent     string
+type SharedJavascriptCoreEngineIf interface {
+	GenerateSharedJavascript(data dtos.FormCoreData) (string, error)
 }
 
-func NewEmbedScriptGenerator(apiBaseURL string, parsedTemplate *template.Template) *EmbedScriptGenerator {
+type EmbedScriptGenerator struct {
+	apiBaseURL                 string
+	parsedTemplate             *template.Template
+	cssContent                 string
+	sharedJavascriptCoreEngine SharedJavascriptCoreEngineIf
+}
+
+func NewEmbedScriptGenerator(apiBaseURL string, parsedTemplate *template.Template, sharedJavascriptCoreEngine SharedJavascriptCoreEngineIf) *EmbedScriptGenerator {
 
 	// Extract static content at initialization
 	cssContent := extractCSSContent()
 
 	return &EmbedScriptGenerator{
-		apiBaseURL:     apiBaseURL,
-		parsedTemplate: parsedTemplate,
-		cssContent:     cssContent,
+		apiBaseURL:                 apiBaseURL,
+		parsedTemplate:             parsedTemplate,
+		cssContent:                 cssContent,
+		sharedJavascriptCoreEngine: sharedJavascriptCoreEngine,
 	}
 }
 
@@ -46,12 +55,19 @@ func (g EmbedScriptGenerator) GenerateEmbedScript() string {
 	// Execute template
 	var buf bytes.Buffer
 	if err := g.parsedTemplate.Execute(&buf, data); err != nil {
-		// In production, we should log this error properly
+		slog.Error("failed to generate embed script", "error", err)
 		// For now, return empty script on error
 		return ""
 	}
 
-	return buf.String()
+	// formData := dtos.FormCoreData{}
+	// sharedJavascript, err := g.sharedJavascriptCoreEngine.GenerateSharedJavascript(formData)
+	// if err != nil {
+	// 	slog.Error("failed to generate shared Javascript", "error", err)
+	// 	return ""
+	// }
+
+	return SharedScriptTemplate + "\n" + buf.String()
 }
 
 // extractCSSContent returns only the static CSS (no template directives)

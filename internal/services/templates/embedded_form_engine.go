@@ -38,23 +38,26 @@ const CompleteHTMLTemplate = `<!DOCTYPE html>
 </head>
 <body>
     {{.CoreHTML}}
+    {{.SharedJavascript}}
     {{.CoreJavascript}}
 </body>
 </html>`
 
 type RequestWrapper struct {
-	Name            string
-	DefaultLanguage string
-	CoreCSSStatic   template.CSS
-	CoreCSSDynamic  template.CSS
-	CoreHTML        template.HTML
-	CoreJavascript  template.HTML
+	Name             string
+	DefaultLanguage  string
+	CoreCSSStatic    template.CSS
+	CoreCSSDynamic   template.CSS
+	CoreHTML         template.HTML
+	CoreJavascript   template.HTML
+	SharedJavascript template.HTML
 }
 
 type FormCoreEngineIf interface {
 	GenerateCSSStatic(data dtos.FormCoreData) (string, error)
 	GenerateCSSDynamic(data dtos.FormCoreData) (string, error)
 	GenerateHTML(data dtos.FormCoreData) (string, error)
+	GenerateSharedJavascript(data dtos.FormCoreData) (string, error)
 	GenerateJavascript(data dtos.FormCoreData) (string, error)
 }
 
@@ -102,18 +105,24 @@ func (fe EmbeddedFormEngine) GenerateHTML(data *dto.FormResponse) (string, error
 		return "", jerrors.InternalServerError("failed to generate core HTML")
 	}
 
+	sharedJavascript, err := fe.coreEngine.GenerateSharedJavascript(coreData)
+	if err != nil {
+		return "", jerrors.InternalServerError("failed to generate shared Javascript")
+	}
+
 	coreJavascript, err := fe.coreEngine.GenerateJavascript(coreData)
 	if err != nil {
 		return "", jerrors.InternalServerError("failed to generate core Javascript")
 	}
 
 	wrapper := RequestWrapper{
-		Name:            data.Name,
-		DefaultLanguage: coreData.DefaultLanguage,
-		CoreCSSStatic:   template.CSS(coreCSSStatic),
-		CoreCSSDynamic:  template.CSS(coreCSSDynamic),
-		CoreHTML:        template.HTML(coreHTML),
-		CoreJavascript:  template.HTML(coreJavascript),
+		Name:             data.Name,
+		DefaultLanguage:  coreData.DefaultLanguage,
+		CoreCSSStatic:    template.CSS(coreCSSStatic),
+		CoreCSSDynamic:   template.CSS(coreCSSDynamic),
+		CoreHTML:         template.HTML(coreHTML),
+		SharedJavascript: template.HTML(sharedJavascript),
+		CoreJavascript:   template.HTML(coreJavascript),
 	}
 
 	var buf bytes.Buffer
