@@ -77,6 +77,15 @@ func (c JformClient) SubmitForm(
 		return jerrors.NotFound("form not found")
 	case http.StatusBadRequest:
 		return jerrors.BadRequest("invalid form ID")
+	case http.StatusTooManyRequests:
+		// parse the response body:
+		errResponse := jerrors.ErrorResponse{}
+		if err := json.NewDecoder(resp.Body).Decode(&errResponse); err != nil {
+			return jerrors.InternalServerError("failed to decode response")
+		}
+
+		// usage has exceeded the limit
+		return jerrors.TooManyRequests(errResponse.Error.Message)
 	default:
 		return jerrors.InternalServerError(fmt.Sprintf("jform service returned status %d", resp.StatusCode))
 	}

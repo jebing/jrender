@@ -210,7 +210,11 @@ function handleFormSubmission(form, messageContainer, submissionUrl) {
     .then(function(response) {
         if (!response.ok) {
             return response.json().then(function(err) {
-                throw new Error(err.message || 'Submission failed');
+                if (err?.error?.message) {
+                    throw new Error(err.error.message);
+                } else {
+                    throw new Error('Submission failed');
+                }
             });
         }
         return response.json();

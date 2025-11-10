@@ -808,8 +808,6 @@ const FormCoreJsTemplate = `<script type="text/javascript">
     (function() {
         'use strict';
 
-        {{.SharedJavascript}}
-
         // Wait for DOM to be ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initFormSubmission);
@@ -821,6 +819,7 @@ const FormCoreJsTemplate = `<script type="text/javascript">
             const formId = '{{.FormID}}';
             const form = document.querySelector('[data-jform-id="' + formId + '"]');
             const messageContainer = document.getElementById('jform-message-' + formId);
+            const submissionUrl = '{{getSubmissionURL .FormID}}';
 
             if (!form) return;
 
@@ -832,7 +831,7 @@ const FormCoreJsTemplate = `<script type="text/javascript">
 
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                handleFormSubmission(form, messageContainer);
+                handleFormSubmission(form, messageContainer, submissionUrl);
             });
         }
     })();
